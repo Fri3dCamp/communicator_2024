@@ -5,7 +5,7 @@ De PCB bevat volgende elementen:
 
 - [LANA TNY](https://phyx.be/LANA_TNY/) controller bord voor het keyboard
 - [I²S Microfoon](Datasheets/MIC.pdf)
-- [I²S DAC met amplifier](Datasheets/AMP.pdf)
+- [I²S DAC met versterker](Datasheets/AMP.pdf)
 
 In de zak zal je ook nog volgende items aantreffen:
 
