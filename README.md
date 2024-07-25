@@ -4,12 +4,12 @@ In deze Git repository kan je de ontwerpbestanden en productiedata vinden van de
 De PCB bevat volgende elementen:
 
 - [LANA TNY](https://phyx.be/LANA_TNY/) controller bord voor het keyboard
-- [I²S Microfoon](datasheets/MIC.pdf)
-- [I²S DAC met amplifier](datasheets/AMP.pdf)
+- [I²S Microfoon](Datasheets/MIC.pdf)
+- [I²S DAC met amplifier](Datasheets/AMP.pdf)
 
 In de zak zal je ook nog volgende items aantreffen:
 
-- [Luidspreker](datasheets/SPK.pdf)
+- [Luidspreker](Datasheets/SPK.pdf)
 - 2 lange pin headers
 - Cover PCB
 - 4 lange plastieken spacers
@@ -19,7 +19,7 @@ Je zal zelf de speaker en pin headers nog moeten solderen, het siliconen keyboar
 
 Het keyboard werkt ook als USB keyboard. Maar plug de USB kabel niet in wanneer de badge verbonden is!
 
-![Communicator 2024 00 Prototype](Media/Protoype.png)
+![Communicator 2024 00 Prototype](Media/Prototype.png)
 
 ![Communicator 2024 01 blockdiagram](Media/blockdiagram.png)
 
