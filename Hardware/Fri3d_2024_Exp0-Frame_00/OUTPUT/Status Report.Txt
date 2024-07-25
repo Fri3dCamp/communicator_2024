@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : PCB Document [Fri3d_2024_Exp0-Frame_00.PcbDoc]
+   Generated File[Fri3d_2024_Exp0-Frame_00.TXT]
+   Generated File[Fri3d_2024_Exp0-Frame_00.LDP]
+   Generated File[Fri3d_2024_Exp0-Frame_00.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 20:26:26 On 18/02/2024
