@@ -62,3 +62,4 @@ The ```Fn``` key can be used to trigger special functions:
  * ```Fn+Left```: Home
  * ```Fn+Right```: End
  * ```Fn+Spacebar```: Toggle keyboard backlight
+ * ```Fn+Right Shift```: Toggle Caps Lock
