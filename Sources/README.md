@@ -39,7 +39,7 @@ make build -C build -f ../config/makefile TOOLPREFIX=/path/to/gnu_riscv_xpack_to
 
 ## Flashing
 
-The application is can be flashed using ```wchisp``` over USB, or OpenOCD using WCHLink:
+The application can be flashed using ```wchisp``` over USB, or OpenOCD using WCHLink:
 
 ```
 wchisp flash build/application.hex
