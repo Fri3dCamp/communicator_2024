@@ -53,7 +53,7 @@ EMBEETLE_MAKEFILE_INTERFACE_VERSION = 7
 # you need a fallback mechanism. Therefore, we provide a default value
 # for these variables here. Read more about the reasons in ADDENDUM 2.
 TOOLPREFIX = riscv-none-elf-
-FLASHTOOL = openocd
+FLASHTOOL = wchisp
 
 # 3. PROJECT LAYOUT
 # =================
@@ -71,8 +71,6 @@ SOURCE_DIR = ../
 BIN_FILE = application.bin
 ELF_FILE = application.elf
 LINKERSCRIPT = ../config/linkerscript.ld
-OPENOCD_CHIPFILE = ../config/openocd_chip.cfg
-OPENOCD_PROBEFILE = ../config/openocd_probe.cfg
 
 # 4. BINARIES
 # ===========
@@ -135,16 +133,8 @@ TOOLCHAIN_LDLIBS = -lm \
 
 # First, define the 'flash' target:
 .PHONY: flash
-
-# Set the LD_LIBRARY_PATH environment variable to point to the executable-
-# folder:
-flash: export LD_LIBRARY_PATH=$(dir $(FLASHTOOL))
-
-# Finally, launch OpenOCD:
 flash: $(BINARIES) print_flash
-	"$(FLASHTOOL)" -f $(OPENOCD_PROBEFILE) \
-               -f $(OPENOCD_CHIPFILE) \
-               -c "program {$(ELF_FILE)} verify reset; shutdown;"
+	"$(FLASHTOOL)" flash $(ELF_FILE)
 
 # Let's figure out what the flags mean:
 #

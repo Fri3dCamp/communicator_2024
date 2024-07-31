@@ -1,7 +1,7 @@
 /*
 ********************************************************************************
 **                                                                            **
-**                    LINKERSCRIPT FOR 'ch32v203c8t6'                         **
+**                    LINKERSCRIPT FOR 'ch32v203g6u6'                         **
 **                                                                            **
 ********************************************************************************
 ** Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
@@ -16,10 +16,8 @@ PROVIDE( _stack_size = __stack_size );
 
 MEMORY
 {
-    /*FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 64K
-    RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20K */
-  	FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 32K
-    RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 10K
+    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 32K
+    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 10K
 }
 
 SECTIONS
