@@ -96,7 +96,7 @@ BINARIES = \
 # 5. COMPILATION FLAGS
 # ====================
 # CPU specific flags for C++, C and assembly compilation and linking.
-TARGET_COMMONFLAGS = -march=rv32imac \
+TARGET_COMMONFLAGS = -march=rv32i_zicsr \
                      -mabi=ilp32 \
                      -msmall-data-limit=8 \
                      -msave-restore \

@@ -1,0 +1,21 @@
+{
+    "name": "WCH-IC RISC-V GNU Toolchain",
+    
+    // Build image locally from provided Dockerfile
+    "build": {
+      "dockerfile": "Dockerfile"
+    },
+
+    // Privileged container in order to access /dev
+    "privileged": true,
+    
+    // Mount USB devices (debug probes, UART interfaces, ...)
+    "mounts": [
+      "source=/dev/bus/usb/,target=/dev/bus/usb/,type=bind"
+    ],
+    
+    // Pre-configure settings and extensions
+    "containerEnv": {
+        "TOOLPREFIX": "/opt/xpack-riscv-none-elf-gcc-12.2.0-3/bin/riscv-none-elf-"
+    },
+}
