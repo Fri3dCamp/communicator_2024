@@ -19,7 +19,7 @@ Je zal zelf de speaker en pin headers nog moeten solderen, het siliconen keyboar
 
 Het keyboard werkt ook als USB keyboard. Maar plug de USB kabel niet in wanneer de badge verbonden is!
 
-![Communicator 2024 00 Prototype](Media/Prototype.png)
+![Communicator 2024 01](Media/Finished.png)
 
 ![Communicator 2024 01 blockdiagram](Media/blockdiagram.png)
 
