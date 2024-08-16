@@ -27,12 +27,9 @@ Het keyboard werkt ook als USB keyboard. Maar plug de USB kabel niet in wanneer 
 ## Communicator 2024 (EN)
 This repository contains the hardware design and production files for the [Fri3d Camp](https://fri3d.be/en/) 2024 Communicator add-on.
 
-# Programming the LANA Module
-To program the small [LANA](https://phyx.be/LANA_TNY/) module on your `communicator`, you can use either [Embeetle IDE](https://embeetle.com/) or [Mounriver Studio](http://www.mounriver.com/). 
-
 &nbsp;<br>
-# Embeetle IDE
-Embeetle is an IDE of Belgian make. The LANA can be programmed directly via the USB-C connector but also with the [WCH-Link debugger](https://www.wch-ic.com/products/WCH-Link.html), which gives extra debugging options. <a href="https://embeetle.com/#supported-hardware/wch/boards/lana-tny-01">Click here</a> For the complete documentation on how to program the LANA module in Embeetle. The steps below show how to get started quickly to program your LANA module via its USB-C port.
+# Programming the LANA Module
+To program the small [LANA](https://phyx.be/LANA_TNY/) module on your `communicator`, you can use either [Embeetle IDE](https://embeetle.com/) or [Mounriver Studio](http://www.mounriver.com/). Embeetle is an IDE of Belgian make. The LANA can be programmed directly via the USB-C connector but also with the [WCH-Link debugger](https://www.wch-ic.com/products/WCH-Link.html), which gives extra debugging options. <a href="https://embeetle.com/#supported-hardware/wch/boards/lana-tny-01">Click here</a> For the complete documentation on how to program the LANA module in Embeetle. The steps below show how to get started quickly to program your LANA module via its USB-C port.
 
 &nbsp;<br>
 ## STEP 1: Download Embeetle IDE
