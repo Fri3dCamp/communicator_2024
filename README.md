@@ -95,6 +95,11 @@ Select **USB Module** from the list of devices and choose **WinUSB** as the driv
 <img src="https://github.com/user-attachments/assets/c5cb00ea-d307-4fd1-a668-03270ae98f34" width="600">
 
 &nbsp;<br>
+Maybe you didn't find **USB Module** in the list of devices? In that case, you might find **Unknown Device #1** instead. Take that one and choose **WinUSB** as the driver. Then click **Replace Driver**:
+
+<img src="https://github.com/user-attachments/assets/aef2f087-8a58-48e2-8b7c-f9f30b3cbd15" width="600">
+
+&nbsp;<br>
 Wait for the driver installation to complete:
 
 <img src="https://github.com/user-attachments/assets/b55a5996-c4af-4f2c-ac66-8b4f59a05aed" width="600">
