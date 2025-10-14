@@ -21,29 +21,17 @@ The second byte is reserved, the remaining 6 bytes can contain a [HID keycode](h
 
 ## Building
 
-First install the RISCV GCC compiler:
+Use [platformio](https://platformio.org) to build this project. If you use the command line, build using:
 
 ```
-https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/tag/v12.2.0-3/
+pio run
 ```
 
-Make a build directory:
+To flash your device, unplug the USB cable, press and hold the reset button while plugging in the USB cable again. Then upload using the command:
 ```
-mkdir build
+pio run -t upload
 ```
-
-And call the makefile:
-```
-make build -C build -f ../config/makefile TOOLPREFIX=/path/to/gnu_riscv_xpack_toolchain_12.2.0_3_64b/bin/riscv-none-elf-
-```
-
-## Flashing
-
-The application can be flashed using ```wchisp``` over USB, or OpenOCD using WCHLink:
-
-```
-wchisp flash build/application.hex
-```
+It will use [wchisp](https://github.com/Community-PIO-CH32V/tool-wchisp) to flash the binary to the CH32V203 chip.
 
 ## Usage
 

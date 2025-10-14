@@ -24,8 +24,8 @@
 #include "usb_prop.h"
 #include "usbd_composite_km.h"
 
-#define I2C_ADDRESS   0x38
-#define I2C_SPEED     400000
+// user configuration
+#include <config.h>
 
 /*********************************************************************
  * @fn      main
@@ -36,9 +36,9 @@
  */
 int main(void)
 {
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     Delay_Init();
-    USART_Badge_Init(115200);
+    USART_Badge_Init(UART_BAUDRATE);
 
     /* initialize i2c */
     IIC_Init(I2C_SPEED, I2C_ADDRESS);
@@ -66,10 +66,3 @@ int main(void)
         KB_Scan_Handle();
     }
 }
-
-
-
-
-
-
-
