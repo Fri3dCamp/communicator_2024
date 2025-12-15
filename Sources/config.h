@@ -1,3 +1,0 @@
-#define I2C_ADDRESS   0x38
-#define I2C_SPEED     400000
-#define UART_BAUDRATE 115200

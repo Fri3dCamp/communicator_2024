@@ -1,0 +1,10 @@
+{
+    "build": {
+        "includeDir": ".",
+        "srcDir": ".",
+        "flags": [
+            "-I CONFIG",
+            "-I USB-Driver/inc"
+        ]
+    }
+}

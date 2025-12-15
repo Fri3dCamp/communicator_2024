@@ -15,7 +15,7 @@
 #include "usb_desc.h"
 #include "usb_pwr.h"
 #include "hw_config.h"
-#include "usbd_composite_km.h"
+#include "keycodes.h"
 
 
 uint8_t Request = 0;
@@ -81,7 +81,7 @@ ONE_DESCRIPTOR String_Descriptor[4] =
 	{(uint8_t*)USBD_StringSerial, USBD_SIZE_STRING_SERIAL}
 };
 
-ONE_DESCRIPTOR Report_Descriptor[2] =
+ONE_DESCRIPTOR Report_Descriptor[1] =
 {
 	{(uint8_t*)USBD_KeyRepDesc, USBD_SIZE_REPORT_DESC_KB},
 };
@@ -89,7 +89,6 @@ ONE_DESCRIPTOR Report_Descriptor[2] =
 ONE_DESCRIPTOR Hid_Descriptor[2] =
 {
 	{(uint8_t*)&USBD_ConfigDescriptor[18], 0x09},
-	{(uint8_t*)&USBD_ConfigDescriptor[43], 0x09},
 };
 
 
@@ -225,21 +224,17 @@ void USBD_Reset(void)
   _ClearDTOG_RX(ENDP0);
   _ClearDTOG_TX(ENDP0);
 
-    SetEPType(ENDP1, EP_INTERRUPT);
-    SetEPTxAddr(ENDP1, ENDP1_TXADDR);
-    SetEPTxStatus(ENDP1, EP_TX_NAK);
-    _ClearDTOG_TX(ENDP1);
-    _ClearDTOG_RX(ENDP1);
+  SetEPType(ENDP1, EP_INTERRUPT);
+  SetEPTxAddr(ENDP1, ENDP1_TXADDR);
+  SetEPTxStatus(ENDP1, EP_TX_NAK);
+  _ClearDTOG_TX(ENDP1);
+  _ClearDTOG_RX(ENDP1);
+  
+  SetDeviceAddress(0);
 
-    SetEPType(ENDP2, EP_INTERRUPT);
-    SetEPTxAddr(ENDP2, ENDP2_TXADDR);
-    SetEPTxStatus(ENDP2, EP_TX_NAK);
-    _ClearDTOG_TX(ENDP2);
-    _ClearDTOG_RX(ENDP2);
-    
-    SetDeviceAddress(0);
+  USBD_Endp1_Busy = 0;
 
-    bDeviceState = ATTACHED;
+  bDeviceState = ATTACHED;
 }
 
 /*******************************************************************************
