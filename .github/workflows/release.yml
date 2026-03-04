@@ -35,7 +35,7 @@ jobs:
       - name: Run PlatformIO Build
         run: pio run -d Sources -e release
         env:
-          PLATFORMIO_BUILD_FLAGS: "-DVERSION_MAJOR=${{ steps.tag.outputs.major }} -DVERSION_MINOR=${{ steps.tag.outputs.minor }} -DVERSION_PATCH=${{ steps.tag.outputs.patch }}"
+          PLATFORMIO_BUILD_FLAGS: "-DVERSION_MAJOR=\\\"${{ steps.tag.outputs.major }}\\\" -DVERSION_MINOR=\\\"${{ steps.tag.outputs.minor }}\\\" -DVERSION_PATCH=\\\"${{ steps.tag.outputs.patch }}\\\""
 
       - name: Create Release
         id: create_release

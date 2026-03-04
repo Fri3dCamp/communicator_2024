@@ -113,19 +113,19 @@ typedef struct
 /*
  * This struct contains all data that is available through I2C.
  * Use the following command with a Buspirate to test:
- * read version number : [ 0x84 0x00 [ 0x85 r:3 ]
- * read key report : [ 0x84 0x03 [ 0x85 r:8 ]
- * read output : [ 0x84 0x0b [ 0x85 r:1 ]
- * read backlight : [ 0x84 0x0c [ 0x85 r:2 ]
- * turn off backlight : [ 0x84 0x0c 0x00 0x00 ]
- * turn on backlight : [ 0x84 0x0c 0x64 0x00 ]
- * read RGB led : [ 0x84 0x0e [ 0x85 r:3 ]
- * turn off RGB led : [ 0x84 0x0e 0x00:3 ]
- * turn on RGB led : [ 0x84 0x0e 0xFF:3 ]
- * turn on RGB led : [ 0x84 0x0e 0xFF 0x00 0x00 ]
- * turn on caps led : [ 0x84 0x11 0xFF ]
- * turn off caps led : [ 0x84 0x11 0x00 ]
- * read caps led: [ 0x84 0x11 [ 0x85 r ]
+ * read version number : [ 0x70 0x00 [ 0x71 r:3 ]
+ * read key report : [ 0x70 0x03 [ 0x71 r:8 ]
+ * read output : [ 0x70 0x0b [ 0x71 r:1 ]
+ * read backlight : [ 0x70 0x0c [ 0x71 r:2 ]
+ * turn off backlight : [ 0x70 0x0c 0x00 0x00 ]
+ * turn on backlight : [ 0x70 0x0c 0x64 0x00 ]
+ * read RGB led : [ 0x70 0x0e [ 0x71 r:3 ]
+ * turn off RGB led : [ 0x70 0x0e 0x00:3 ]
+ * turn on RGB led : [ 0x70 0x0e 0xFF:3 ]
+ * turn on RGB led : [ 0x70 0x0e 0xFF 0x00 0x00 ]
+ * turn on caps led : [ 0x70 0x11 0xFF ]
+ * turn off caps led : [ 0x70 0x11 0x00 ]
+ * read caps led: [ 0x70 0x11 [ 0x71 r ]
  */
 typedef struct __attribute__((packed))
 {
@@ -1057,9 +1057,12 @@ int main(void)
     memset(&state, 0, sizeof(addon_state_t));
 
     /* set the version number from git */
-    state.data.version[0] = atoi(VERSION_MAJOR) & 0xff;
-    state.data.version[1] = atoi(VERSION_MINOR) & 0xff;
-    state.data.version[2] = atoi(VERSION_PATCH) & 0xff;
+    char version_major[] = VERSION_MAJOR;
+    char version_minor[] = VERSION_MINOR;
+    char version_patch[] = VERSION_PATCH;
+    state.data.version[0] = atoi(version_major) & 0xff;
+    state.data.version[1] = atoi(version_minor) & 0xff;
+    state.data.version[2] = atoi(version_patch) & 0xff;
 
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     SystemCoreClockUpdate();
