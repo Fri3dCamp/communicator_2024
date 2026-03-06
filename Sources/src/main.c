@@ -1,21 +1,3 @@
-/********************************** (C) COPYRIGHT *******************************
- * File Name          : main.c
- * Author             : Bert Outtier
- * Version            : V1.0.0
- * Date               : 2024/06/17
- * Description        : Main program body.
- *********************************************************************************
- * Copyright (c) 2024 Fri3D Camp
- *******************************************************************************/
-
-/*
- * @Note
- * Lana Keyboard:
- * This codes runs on the Lana board mounted on the Fri3D Badge 2024 keyboard expansion.
- * It presents as a USB HID device over USB and it also uses USART2 (TX only)
- * to send the HID reports to the badge.
- */
-
 #include <ch32v20x.h>
 #include <stdlib.h> /* atoi() */
 #include <string.h> /* memset() */
@@ -23,8 +5,8 @@
 #include <usb_lib.h>
 #include <usb_pwr.h>
 
-#include <debug.h>
 #include "keycodes.h"
+#include <debug.h>
 
 #define SDA_PORT         GPIOB
 #define SDA_PIN          GPIO_Pin_7
@@ -592,7 +574,7 @@ static uint8_t io_to_scan_result(uint16_t a, uint16_t b, uint16_t d)
 /* Perform the keyboard scan. */
 static void KB_Scan(void)
 {
-    static uint16_t scan_cnt = 0;
+    static uint8_t scan_cnt = 0;
     static uint8_t scan_col = 0;
     static uint8_t scan_result[N_COLS] = {0x00};
     static uint8_t scan = 0;
@@ -943,7 +925,7 @@ static void i2c_slave_process(void)
                     state.flag_update_red = 1;
                 }
                 else
-                break;
+                    break;
             }
             default:
                 while (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
@@ -998,19 +980,23 @@ static void i2c_slave_process(void)
 /* 2 breath pulses of the backlight */
 static void boot_animation(void)
 {
-    for (uint16_t i=0; i<100; i++) {
+    for (uint16_t i = 0; i < 100; i++)
+    {
         LED_Backlight_SetBrightness(i);
         WS2812BSimpleSend(LED_PORT, LED_PIN, state.leds, N_LEDS);
     }
-    for (uint16_t i=100; i>0; i--) {
+    for (uint16_t i = 100; i > 0; i--)
+    {
         LED_Backlight_SetBrightness(i);
         WS2812BSimpleSend(LED_PORT, LED_PIN, state.leds, N_LEDS);
     }
-    for (uint16_t i=0; i<100; i++) {
+    for (uint16_t i = 0; i < 100; i++)
+    {
         LED_Backlight_SetBrightness(i);
         WS2812BSimpleSend(LED_PORT, LED_PIN, state.leds, N_LEDS);
     }
-    for (uint16_t i=100; i>0; i--) {
+    for (uint16_t i = 100; i > 0; i--)
+    {
         LED_Backlight_SetBrightness(i);
         WS2812BSimpleSend(LED_PORT, LED_PIN, state.leds, N_LEDS);
     }
@@ -1020,7 +1006,7 @@ static void boot_animation(void)
 /* configure UART 2 as output */
 static void USART_Output_Init(uint32_t baudrate)
 {
-    GPIO_InitTypeDef  GPIO_InitStructure;
+    GPIO_InitTypeDef GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
@@ -1073,11 +1059,11 @@ int main(void)
     USART_Output_Init(UART_BAUDRATE);
 #endif
 
-    /* initialize i2c */
-    IIC_Init(I2C_SPEED, I2C_ADDRESS);
-
     /* makes sure that we can still flash using SWD */
     Delay_Ms(1000);
+
+    /* initialize i2c */
+    IIC_Init(I2C_SPEED, I2C_ADDRESS);
 
     PRINT("SystemClk: %u\r\n", (unsigned)SystemCoreClock);
     PRINT("ChipID: %08x\r\n", (unsigned)DBGMCU_GetCHIPID());
