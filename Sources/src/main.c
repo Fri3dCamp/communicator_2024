@@ -6,8 +6,13 @@
 #include <usb_pwr.h>
 
 #include "keycodes.h"
-#include <debug.h>
+/* we use our own custom debug lib
+ * because the framework-wch-noneos-sdk does not allow UART4
+ * as debug output
+ */
+#include "debug.h"
 
+/* I2C on the expansion connector towards the badge */
 #define SDA_PORT         GPIOB
 #define SDA_PIN          GPIO_Pin_7
 #define SCL_PORT         GPIOB
@@ -111,7 +116,7 @@ typedef struct
  */
 typedef struct __attribute__((packed))
 {
-    uint8_t version[3];      /* version number */
+    uint8_t version[3];      // version number
     key_report_t key_report; // reference to the button state byte in the result buffer
     uint8_t enable_int : 1;  // configuration flag to enable interrupt output instead of UART output (TODO)
     uint8_t reboot : 1;      // configuration flag to trigger a reboot to bootloader
@@ -132,7 +137,7 @@ typedef struct
     uint8_t flag_update_red : 1;          // flag to indicate that the red LED should be updated
     uint8_t flag_update_leds : 1;         // flag to indicate that the LED state should be written to the WS2812 LEDs
     uint8_t flag_button_scan_halfway : 1; // flag to indicate that the matrix scan is halfway
-    uint8_t flag_caps_lock : 1;           // reserved for future use
+    uint8_t flag_caps_lock : 1;           // flag to indicate that the caps lock has been activated
     uint8_t matrix_state[N_COLS];         // current matrix state
     uint8_t leds[N_LEDS];                 // current led state
     uint8_t raw_data_ptr;                 // current index in the raw_data buffer to read/write using I2C
@@ -166,8 +171,10 @@ static void TIM3_Init(uint16_t arr, uint16_t psc)
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
+    /* enable timer interrupts */
     TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 
+    /* configure timer interrupt */
     NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -514,57 +521,49 @@ static uint8_t io_to_scan_result(uint16_t a, uint16_t b, uint16_t d)
 {
     uint8_t out = 0;
 
-    // row7: PB5
-    if (!(b & (ROW7_PIN)))
+    if (!(b & (ROW7_PIN))) // PB5: row7
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row6: PA7
-    if (!(a & (ROW6_PIN)))
+    if (!(a & (ROW6_PIN))) // PA7: row6
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row5: PA9
-    if (!(a & (ROW5_PIN)))
+    if (!(a & (ROW5_PIN))) // PA9: row5
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row4: PA6
-    if (!(a & (ROW4_PIN)))
+    if (!(a & (ROW4_PIN))) // PA6: row4
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row3: PA4
-    if (!(a & (ROW3_PIN)))
+    if (!(a & (ROW3_PIN))) // PA4: row3
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row2: PA5
-    if (!(a & (ROW2_PIN)))
+    if (!(a & (ROW2_PIN))) // PA5: row2
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row1: PA3
-    if (!(a & (ROW1_PIN)))
+    if (!(a & (ROW1_PIN))) // PA3: row1
     {
         out |= 1;
     }
     out <<= 1;
 
-    // row0: PD1
-    if (!(d & (ROW0_PIN)))
+    if (!(d & (ROW0_PIN))) // PD1: row0
     {
         out |= 1;
     }
@@ -819,27 +818,34 @@ static void handle_fn(key_report_t *in, key_report_t *out)
     }
 }
 
+/* clear the various error flags that may block further communication */
 static void I2C1_ClearErrorFlags(void)
-{ // clear the various error flags that may block further communication
-
+{
+    /* I2C_FLAG_AF - Acknowledge failure flag */
     if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) != RESET)
-    { //  I2C_FLAG_AF - Acknowledge failure flag.
+    {
+        PRINT("clear I2C_FLAG_AF flag\r\n");
         I2C_ClearFlag(I2C1, I2C_FLAG_AF);
     }
+    /* I2C_FLAG_BERR -Bus Error flag.*/
     if (I2C_GetFlagStatus(I2C1, I2C_FLAG_BERR) != RESET)
-    { //  I2C_FLAG_BERR -Bus Error flag.
+    {
+        PRINT("clear I2C_FLAG_BERR flag\r\n");
         I2C_ClearFlag(I2C1, I2C_FLAG_BERR);
     }
 }
 
+/* clear the stop flag */
 static void I2C1_ClearStopFlag(void)
-{ // clear the stop flag
+{
     if (I2C_GetFlagStatus(I2C1, I2C_FLAG_STOPF) != RESET)
-    { // Stop detection flag (Slave mode).
-        // STOPF (STOP detection) is cleared by software sequence: a read operation
-        // to I2C_STAR1 register (I2C_GetFlagStatus()) followed by a write operation
-        // to I2C_CTLR1 register (I2C_Cmd() to re-enable the I2C peripheral).
-        // -> Since we just read the flag, we only need to (re-)enable.
+    {
+        /* Stop detection flag (Slave mode).
+         * STOPF (STOP detection) is cleared by software sequence: a read operation
+         * to I2C_STAR1 register (I2C_GetFlagStatus()) followed by a write operation
+         * to I2C_CTLR1 register (I2C_Cmd() to re-enable the I2C peripheral).
+         * -> Since we just read the flag, we only need to (re-)enable.
+         * */
         I2C_Cmd(I2C1, ENABLE);
     }
 }
@@ -866,12 +872,15 @@ static int i2c_slave_read(uint8_t *data, uint16_t size)
     return i;
 }
 
-// MMOLE: added function to process I2C slave data transfers
+/* function to process I2C slave data transfers */
+/* reference: arduino implementation */
 static void i2c_slave_process(void)
-{ // Process incoming and outgoing I2C data.
-    // When processing the data we can assume there is an address match.
-    // We could wait for an address match, but that would be blocking
-    // and isn't needed as RX/TX-flags are only set when addressed properly.
+{
+    /* Process incoming and outgoing I2C data.
+     * When processing the data we can assume there is an address match.
+     * We could wait for an address match, but that would be blocking
+     * and isn't needed as RX/TX-flags are only set when addressed properly.
+     */
 
     /* Process receiving data */
     if (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
@@ -930,7 +939,11 @@ static void i2c_slave_process(void)
             default:
                 while (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
                 {
-                    char c = I2C_ReceiveData(I2C1);
+#if (DEBUG)
+                    PRINT("received %x\r\n", I2C_ReceiveData(I2C1));
+#else
+                    I2C_ReceiveData(I2C1);
+#endif
                 }
                 PRINT("we do not allow writing to offset 0x%02x\r\n", state.raw_data_ptr);
         }
@@ -1002,8 +1015,6 @@ static void boot_animation(void)
     }
 }
 
-#ifndef DEBUG
-/* configure UART 2 as output */
 static void USART_Output_Init(uint32_t baudrate)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -1027,7 +1038,6 @@ static void USART_Output_Init(uint32_t baudrate)
     USART_Init(USART2, &USART_InitStructure);
     USART_Cmd(USART2, ENABLE);
 }
-#endif
 
 /* Main program */
 int main(void)
@@ -1053,17 +1063,15 @@ int main(void)
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     SystemCoreClockUpdate();
     Delay_Init();
-#if (DEBUG)
-    USART_Printf_Init(UART_BAUDRATE);
-#else
-    USART_Output_Init(UART_BAUDRATE);
-#endif
 
-    /* makes sure that we can still flash using SWD */
-    Delay_Ms(1000);
+    /* always configure the UART2 as TX */
+    USART_Output_Init(UART_BAUDRATE);
 
     /* initialize i2c */
     IIC_Init(I2C_SPEED, I2C_ADDRESS);
+
+    /* makes sure that we can still flash using SWD */
+    Delay_Ms(1000);
 
     PRINT("SystemClk: %u\r\n", (unsigned)SystemCoreClock);
     PRINT("ChipID: %08x\r\n", (unsigned)DBGMCU_GetCHIPID());
@@ -1161,11 +1169,11 @@ int main(void)
 
         if (state.flag_matrix_scan_done)
         {
-            // matrix state has changed
             state.flag_matrix_scan_done = 0;
 
             if (memcmp(state.matrix_state, previous_matrix_state, N_COLS) != 0)
             {
+                // matrix state has changed
                 for (int c = 0; c < N_COLS; c++)
                 {
                     if (state.matrix_state[c] != previous_matrix_state[c])

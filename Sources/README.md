@@ -1,10 +1,12 @@
-## Keyboard expansion firmware
+## Fri3d Camp 2024 Communicator add-on firmware
 
-This firmware runs on the Fri3D camp 2024 communicator expansion board, which is powered by [LANA_TNY](https://phyx.be/LANA_TNY).
+This firmware runs on the Fri3d camp 2024 communicator add-on board, which is powered by the [LANA-TNY](https://phyx.be/LANA_TNY) module. This module only controls the keyboard part of the communicator. The audio related functions of the communicator are handled by the main MCU of Fri3d badge through the expansion connector. More information about the 2024 communicator addon can be found [here](https://fri3dcamp.github.io/badge_2024/en/communicator/) ([dutch](https://fri3dcamp.github.io/badge_2024/communicator)).
 
-The firmware outputs [HID report packets](https://files.microscan.com/helpfiles/ms4_help_file/ms-4_help-02-46.html) (8 bytes) on USB and UART.
+The firmware outputs [HID report packets](https://files.microscan.com/helpfiles/ms4_help_file/ms-4_help-02-46.html) on USB and UART on the expansion connector. So the 2024 communicator addon can be used standalone using the USB connector attached to a PC for use as a normal keyboard, or in combination with the Fri3d badge [2024](https://github.com/Fri3dCamp/badge_2024) or [2026](https://github.com/Fri3dCamp/badge_2026) using the expansion connector.
 
-The first byte indicates the modifier keys that have been pressed:
+## HID Report packets
+
+We use HID Subclass 1 A HID report packet consists of 8 bytes. The first byte indicates the modifier keys that have been pressed:
 
 | Bit | Modifier Key |
 |-|-|
@@ -21,50 +23,54 @@ The second byte is reserved, the remaining 6 bytes can contain a [HID keycode](h
 
 ### I2C
 
-The Fri3D badge 2024 and 2026 can communicate with the communicator through I2C (address ```0x38```). The following registers can be used to interface/control with the communicator:
+The Fri3d badge [2024](https://github.com/Fri3dCamp/badge_2024) and [2026](https://github.com/Fri3dCamp/badge_2026) can communicate with the 2024 communicator add-on through I2C (address ```0x38```). The following registers can be used to interface/control with the add-on:
 
-| Address (hex) | Name | Access | Bytes | description |
+| Register (hex) | Name | Access | Bytes | description |
 |-|-|-|-|-|
 | 0x00 | Version number | R | 3 | Reports the firmware version number |
 | 0x03 | current HID report packet | R | 8 | An 8-byte HID report packet (see above) |
-| 0x0b | Configuration | R | 1 | a 1-byte configuration register (see below) |
+| 0x0b | Configuration | R/W | 1 | a 1-byte configuration register (see below) |
 | 0x0c | Backlight | R/W | 2 | Keyboard backlight intensity (0-100) |
 | 0x0e | LANA RGB LED | R/W | 3 | LANA module RGB LED value (R,G,B) (2) |
 | 0x11 | CAPS Lock indicator | R/W | 1 | CAPS lock LED indicator (2) |
-2. not available on the [Fri3D communicator 2026]()
+2. not available on the [Fri3D communicator 2026](https://github.com/Fri3dCamp/communicator_2026)
 
 The configuration is a 1-byte value with the following encoding:
 | Bit | Name |
 |-|-|
 | \[7:2\] | reserved |
 | 1 | reboot to bootloader |
-| 0 | enable interrupt mode |
+| 0 | enable interrupt mode (not implemented yet) |
 
 ## Building
 
-Use [platformio](https://platformio.org) to build this project. If you use the command line, build using:
+Use [platformio](https://platformio.org) to build this project. You should install the [ch32v platform package](https://github.com/Community-PIO-CH32V/platform-ch32v) as well. If you use the command line, build using:
 
 ```
 pio run
 ```
 
-To flash your device, unplug the USB cable, press and hold the reset button while plugging in the USB cable again. Then upload using the command:
+## Flashing
+
+To flash your 2024 communicator, unplug the USB cable, press and hold the boot button of the [LANA-TNY](https://phyx.be/LANA_TNY) module while plugging in the USB cable again. Then upload using the command:
 ```
 pio run -t upload
 ```
 It will use [wchisp](https://github.com/Community-PIO-CH32V/tool-wchisp) to flash the binary to the CH32V203 chip.
 
+More info about flashing the LAN-TNY module can be found [here](https://fri3dcamp.github.io/badge_2024/en/communicator/programming/) ([dutch](https://fri3dcamp.github.io/badge_2024/communicator/programming/)).
+
 ## Usage
 
 The keyboard presents itself as a HID input device.
 The ```Fn``` key can be used to trigger special functions:
- * ```Fn+F1```: Put LANA LED to red
- * ```Fn+F2```: Put LANA LED to orange
- * ```Fn+F3```: Put LANA LED to yellow
- * ```Fn+F4```: Put LANA LED to green
- * ```Fn+F5```: Put LANA LED to blue
- * ```Fn+F6```: Put LANA LED to purple
- * ```Fn+Windows```: Put LANA LED off
+ * ```Fn+F1```: Put LANA LED to red (1)
+ * ```Fn+F2```: Put LANA LED to orange (1)
+ * ```Fn+F3```: Put LANA LED to yellow (1)
+ * ```Fn+F4```: Put LANA LED to green (1)
+ * ```Fn+F5```: Put LANA LED to blue (1)
+ * ```Fn+F6```: Put LANA LED to purple (1)
+ * ```Fn+Windows```: Put LANA LED off (1)
  * ```Fn+Backspace```: Delete
  * ```Fn+Up```: Page Up
  * ```Fn+Down```: Page Down
@@ -72,3 +78,4 @@ The ```Fn``` key can be used to trigger special functions:
  * ```Fn+Right```: End
  * ```Fn+Spacebar```: Toggle keyboard backlight
  * ```Fn+Right Shift```: Toggle Caps Lock
+1. only on the 2024 communicator
