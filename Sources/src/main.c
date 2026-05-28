@@ -138,9 +138,12 @@ typedef struct
     uint8_t flag_update_leds : 1;         // flag to indicate that the LED state should be written to the WS2812 LEDs
     uint8_t flag_button_scan_halfway : 1; // flag to indicate that the matrix scan is halfway
     uint8_t flag_caps_lock : 1;           // flag to indicate that the caps lock has been activated
-    uint8_t matrix_state[N_COLS];         // current matrix state
-    uint8_t leds[N_LEDS];                 // current led state
-    uint8_t raw_data_ptr;                 // current index in the raw_data buffer to read/write using I2C
+    uint8_t flag_slave_first_write;
+    uint8_t matrix_state[N_COLS];         // current matrix state (9)
+    uint8_t leds[N_LEDS];                 // current led state (12)
+    uint8_t slave_offset;               /* register offset captured after the most recent ADDR+W. */
+    uint8_t slave_position;             /* current read/write cursor, reset to offset on every ADDR (including repeated-START), so write-then-read works without special-casing. */
+    uint8_t unused;
     union
     {
         addon_data_t data;
@@ -271,8 +274,12 @@ static void IIC_Init(uint32_t bound, uint16_t address)
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);
 
-    /* enable I2C interrupts */
-    I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, ENABLE); // TODO: also I2C_IT_BUF?
+    /* Enable I2C event, error, and buffer interrupts.
+     * EVT fires on: address match, byte received, byte transmitted, stop detected.
+     * ERR fires on: bus error, arbitration lost, acknowledge failure, etc.
+     * BUF fires on: TXE/RXNE (needed so we get an interrupt for each data byte).
+     */
+    I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, ENABLE);
 
     /* enable clock stretching */
     I2C_StretchClockCmd(I2C1, ENABLE);
@@ -818,176 +825,108 @@ static void handle_fn(key_report_t *in, key_report_t *out)
     }
 }
 
-/* clear the various error flags that may block further communication */
-static void I2C1_ClearErrorFlags(void)
-{
-    /* I2C_FLAG_AF - Acknowledge failure flag */
-    if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) != RESET)
-    {
-        PRINT("clear I2C_FLAG_AF flag\r\n");
-        I2C_ClearFlag(I2C1, I2C_FLAG_AF);
-    }
-    /* I2C_FLAG_BERR -Bus Error flag.*/
-    if (I2C_GetFlagStatus(I2C1, I2C_FLAG_BERR) != RESET)
-    {
-        PRINT("clear I2C_FLAG_BERR flag\r\n");
-        I2C_ClearFlag(I2C1, I2C_FLAG_BERR);
-    }
-}
-
-/* clear the stop flag */
-static void I2C1_ClearStopFlag(void)
-{
-    if (I2C_GetFlagStatus(I2C1, I2C_FLAG_STOPF) != RESET)
-    {
-        /* Stop detection flag (Slave mode).
-         * STOPF (STOP detection) is cleared by software sequence: a read operation
-         * to I2C_STAR1 register (I2C_GetFlagStatus()) followed by a write operation
-         * to I2C_CTLR1 register (I2C_Cmd() to re-enable the I2C peripheral).
-         * -> Since we just read the flag, we only need to (re-)enable.
-         * */
-        I2C_Cmd(I2C1, ENABLE);
-    }
-}
-
-/**
- * @brief  Read bytes from master using a timeout
- * @param  data: pointer to data to be read
- * @param  size: number of bytes to be write.
- * @retval status
- */
-static int i2c_slave_read(uint8_t *data, uint16_t size)
-{
-    uint8_t i = 0;
-    uint32_t tickstart = SysTick->CNT;
-
-    while (i < size && I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
-    {
-        data[i++] = I2C_ReceiveData(I2C1);
-        if ((SysTick->CNT - tickstart) >= I2C_TIMEOUT_TICK)
-        {
-            break;
-        }
-    }
-    return i;
-}
-
 /* function to process I2C slave data transfers */
 /* reference: arduino implementation */
 static void i2c_slave_process(void)
 {
-    /* Process incoming and outgoing I2C data.
-     * When processing the data we can assume there is an address match.
-     * We could wait for an address match, but that would be blocking
-     * and isn't needed as RX/TX-flags are only set when addressed properly.
+    uint32_t flag1 = 0, flag2 = 0;
+
+    /* Snapshot all pending event flags in one read to avoid races. */
+    flag1 = I2C1->STAR1;
+
+    /* ADDR: our slave address was matched on the bus (start of any transaction).
+     * Reset slave_position to slave_offset so that a repeated-START read begins
+     * at the register the master last wrote, without needing a new WRITE phase.
+     * Set flag_slave_first_write so the next RXNE byte is treated as the
+     * register pointer rather than payload data.
      */
-
-    /* Process receiving data */
-    if (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
+    if (flag1 & I2C_STAR1_ADDR)
     {
-        /* Data register not empty (Receiver) flag
-         * read all available data and store it
-         */
-        state.raw_data_ptr = I2C_ReceiveData(I2C1);
-        switch (state.raw_data_ptr)
-        {
-            case RESULT_CONFIG_OFFSET: {
-                uint8_t new_value;
-                int ret = i2c_slave_read((uint8_t *)(&new_value), 1);
-                state.raw_data_ptr += ret;
-                if (ret == 1)
-                {
-                    state.raw_data[RESULT_CONFIG_OFFSET] = new_value;
-                }
-                break;
-            }
-            case RESULT_BACKLIGHT_OFFSET: {
-                uint16_t new_value;
-                int ret = i2c_slave_read((uint8_t *)(&new_value), 2);
-                state.raw_data_ptr += ret;
-                if (ret == 2)
-                {
-                    state.data.backlight = new_value;
-                    state.flag_update_backlight = 1;
-                }
-                break;
-            }
-            case RESULT_RGB_OFFSET: {
-                uint8_t new_value[3];
-                memset(new_value, 0, 3);
-                int ret = i2c_slave_read(new_value, 3);
-                state.raw_data_ptr += ret;
-                if (ret == 3)
-                {
-                    memcpy(&state.raw_data[RESULT_RGB_OFFSET], new_value, 3);
-                    state.flag_update_rgb = 1; // set the flag to update the outputs
-                }
-                break;
-            }
-            case RESULT_RED_OFFSET: {
-                uint8_t new_value;
-                int ret = i2c_slave_read((uint8_t *)(&new_value), 1);
-                state.raw_data_ptr += ret;
-                if (ret == 1)
-                {
-                    state.raw_data[RESULT_RED_OFFSET] = new_value;
-                    state.flag_update_red = 1;
-                }
-                else
-                    break;
-            }
-            default:
-                while (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) != RESET)
-                {
-#if (DEBUG)
-                    PRINT("received %x\r\n", I2C_ReceiveData(I2C1));
-#else
-                    I2C_ReceiveData(I2C1);
-#endif
-                }
-                PRINT("we do not allow writing to offset 0x%02x\r\n", state.raw_data_ptr);
-        }
+        state.slave_position = state.slave_offset;
+        state.flag_slave_first_write = 1;
     }
 
-    /* Process end of receiving data, as determined by stop flag */
-    if (I2C_CheckEvent(I2C1, I2C_EVENT_SLAVE_STOP_DETECTED))
+    /* RXNE: receive data register not empty — master sent a byte.
+     * The first byte after address+W is the register pointer; every byte
+     * after that is payload to be written into the register map.
+     */
+    if (flag1 & I2C_STAR1_RXNE)
     {
-        PRINT("all data received\r\n");
-        /* clear the stop flag to be ready for another session */
-        I2C1_ClearStopFlag();
-    }
-
-    /* Process transmitting data */
-    if (I2C_GetFlagStatus(I2C1, I2C_FLAG_TXE) != RESET)
-    {
-        /* Data register empty flag (Transmitter).
-         * It seems we need to send something
-         */
-        if (state.raw_data_ptr < RESULT_BUFFER_SIZE)
+        uint8_t byte = I2C_ReceiveData(I2C1);
+        if (state.flag_slave_first_write)
         {
-            PRINT("sending\r\n");
-            I2C_SendData(I2C1, state.raw_data[state.raw_data_ptr++]); // send register value to master
+            /* Register pointer: latch it as both the persistent offset (used to
+             * reset slave_position on repeated-START) and the current cursor.
+             */
+            state.slave_offset = byte;
+            state.slave_position = byte;
+            state.flag_slave_first_write = 0;
         }
         else
         {
-            PRINT("ERROR: reading dummy data\r\n");
-            I2C_SendData(I2C1, 0x00); // send dummy data to master
+            if (state.slave_position >= RESULT_CONFIG_OFFSET && state.slave_position < RESULT_BUFFER_SIZE)
+            {
+                state.raw_data[state.slave_position] = byte;
+                if (state.slave_position == RESULT_CONFIG_OFFSET) {
+                    // TODO: signal main thread?
+                }
+                if (state.slave_position == RESULT_BACKLIGHT_OFFSET ||
+                    state.slave_position == RESULT_BACKLIGHT_OFFSET+1) {
+                    state.flag_update_backlight = 1; // TODO: this might signal the main thread twice
+                }
+                if (state.slave_position == RESULT_RGB_OFFSET ||
+                    state.slave_position == RESULT_RGB_OFFSET + 1 ||
+                    state.slave_position == RESULT_RGB_OFFSET + 2) {
+                    state.flag_update_rgb = 1; // set the flag to update the outputs
+                }
+                if (state.slave_position == RESULT_RED_OFFSET) {
+                    state.flag_update_red = 1;
+                }
+            }
+            state.slave_position++;
         }
     }
 
-    // just for debugging
-    if (I2C_CheckEvent(I2C1, I2C_EVENT_SLAVE_BYTE_TRANSMITTED))
+    /* Process transmitting data (master is reading from us).
+     * Send one byte from raw_data[] at the current pointer position and advance
+     * the pointer so consecutive TXE interrupts walk through the register file.
+     * If slave_position is out of range, send 0x00 as a safe dummy byte.
+     */
+    if (flag1 & I2C_STAR1_TXE)
     {
-        PRINT("Master acked received byte (I2C_EVENT_SLAVE_BYTE_TRANSMITTED)\r\n");
+        if (state.slave_position < RESULT_BUFFER_SIZE)
+        {
+            I2C_SendData(I2C1, state.raw_data[state.slave_position++]);
+        }
+        else
+        {
+            /* send dummy data */
+            I2C_SendData(I2C1, 0x00);
+        }
     }
 
-    if (I2C_CheckEvent(I2C1, I2C_EVENT_SLAVE_ACK_FAILURE))
+    /* STOPF: master issued a STOP condition, ending the current transaction.
+     * Hardware clears STOPF by: read STAR1 (done above) then write CTLR1.
+     */
+    if (flag1 & I2C_STAR1_STOPF)
     {
-        PRINT("Master stopped receiving (I2C_EVENT_SLAVE_ACK_FAILURE)\r\n");
+        /* writing CTLR1 after reading STAR1 clears STOPF */
+        I2C1->CTLR1 &= ~(I2C_CTLR1_STOP);
+
+        /* Re-arm "next byte is a register offset" here too, not just on ADDR.
+         * If back-to-back transactions leave too little bus-free time, the next
+         * transaction's ADDR event can be missed/coalesced; without this, its
+         * offset byte would be written into raw_data[] as stray data instead of
+         * being captured as the new offset.
+         */
+        state.flag_slave_first_write = 1;
     }
 
-    /* Clear error flags (since we don't handle them anyways) */
-    I2C1_ClearErrorFlags();
+    /* Reading STAR2 releases clock stretching so the master can continue.
+     * The dummy cast suppresses the unused-variable warning.
+     */
+    flag2 = I2C1->STAR2;
+    (void)flag2;
 }
 
 /* 2 breath pulses of the backlight */
@@ -1319,6 +1258,10 @@ void I2C1_EV_IRQHandler(void)
 void I2C1_ER_IRQHandler(void) __attribute__((interrupt));
 void I2C1_ER_IRQHandler(void)
 {
+    uint16_t STAR1 = I2C1->STAR1;
+    if (STAR1 & I2C_STAR1_BERR) I2C1->STAR1 &= ~I2C_STAR1_BERR;
+    if (STAR1 & I2C_STAR1_ARLO) I2C1->STAR1 &= ~I2C_STAR1_ARLO;
+    if (STAR1 & I2C_STAR1_AF) I2C1->STAR1 &= ~I2C_STAR1_AF;
 }
 
 /*********************************************************************
